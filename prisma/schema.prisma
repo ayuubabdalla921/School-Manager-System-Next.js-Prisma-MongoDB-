@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+
+
+//
+//  USER MODEL — ADMIN, TEACHER, STUDENT
+//
+model User {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String     @unique
+  password  String
+  phone     String?
+  gender    String?
+  role      Role       @default(STUDENT)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  teacherClasses Class[]            @relation("TeacherClasses")
+  studentClasses StudentClass[]     @relation("StudentClasses")
+  messagesSent   Message[]          @relation("MessagesSent")
+  messagesReceived Message[]        @relation("MessagesReceived")
+  attendances    Attendance[]       @relation("AttendanceStudent")
+  parentLinks    ParentLink[]       @relation("ParentLinkParent")
+  childrenLinks  ParentLink[]       @relation("ParentLinkStudent")
+  studentPayments Payment[]         @relation("PaymentStudent")
+  parentPayments  Payment[]         @relation("PaymentParent")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+//
+//  CLASS MODEL
+//
+model Class {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  level     String?       // e.g: Grade 10, Form 3, etc.
+  createdAt DateTime      @default(now())
+
+  teacher   User          @relation(name: "TeacherClasses", fields: [teacherId], references: [id])
+  teacherId String        @db.ObjectId
+
+  students  StudentClass[]
+  subjects  Subject[]
+  attendances Attendance[] @relation("AttendanceClass")
+}
+
+//
+//  STUDENT → CLASS (Many-to-Many)
+//
+model StudentClass {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  student   User     @relation(name: "StudentClasses", fields: [studentId], references: [id])
+  studentId String   @db.ObjectId
+
+  class     Class    @relation(fields: [classId], references: [id])
+  classId   String   @db.ObjectId
+}
+
+//
+// SUBJECTS MODEL
+//
+model Subject {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  code      String?    // e.g: MTH101
+  createdAt DateTime   @default(now())
+
+  class     Class      @relation(fields: [classId], references: [id])
+  classId   String     @db.ObjectId
+}
+
+//
+// ATTENDANCE MODEL
+//
+model Attendance {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  date      DateTime @default(now())
+  status    String   // PRESENT | ABSENT
+
+  student   User     @relation("AttendanceStudent", fields: [studentId], references: [id])
+  studentId String   @db.ObjectId
+
+  class     Class    @relation("AttendanceClass", fields: [classId], references: [id])
+  classId   String   @db.ObjectId
+}
+
+//
+// MESSAGES MODEL — Chat System
+//
+model Message {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  createdAt DateTime @default(now())
+
+  sender    User     @relation(name: "MessagesSent", fields: [senderId], references: [id])
+  senderId  String   @db.ObjectId
+
+  receiver  User     @relation(name: "MessagesReceived", fields: [receiverId], references: [id])
+  receiverId String  @db.ObjectId
+}
+
+model ParentLink {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  parent    User     @relation("ParentLinkParent", fields: [parentId], references: [id])
+  parentId  String   @db.ObjectId
+  student   User     @relation("ParentLinkStudent", fields: [studentId], references: [id])
+  studentId String   @db.ObjectId
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id         String          @id @default(auto()) @map("_id") @db.ObjectId
+  student    User            @relation("PaymentStudent", fields: [studentId], references: [id])
+  studentId  String          @db.ObjectId
+  parent     User?           @relation("PaymentParent", fields: [parentId], references: [id])
+  parentId   String?         @db.ObjectId
+  description String?
+  amount     Float
+  status     PaymentStatus   @default(PENDING)
+  dueDate    DateTime?
+  receiptUrl String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+  
