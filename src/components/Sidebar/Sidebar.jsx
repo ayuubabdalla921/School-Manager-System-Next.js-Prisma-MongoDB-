@@ -13,6 +13,7 @@ import {
   Settings,
   X,
   CreditCard,
+  UserPlus,
 } from "lucide-react";
 import { readSessionUser } from "@/lib/client-session";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,11 @@ const FALLBACK_LINKS = [
 const ROLE_LINKS = {
   ADMIN: [
     { href: "/dashboard/admin", label: "Admin Panel", icon: Users },
+    {
+      href: "/dashboard/admin/users",
+      label: "User Management",
+      icon: UserPlus,
+    },
     {
       href: "/dashboard/teacher",
       label: "Teacher Oversight",
@@ -62,10 +68,17 @@ export default function Sidebar({
   onClose = () => {},
 }) {
   const pathname = usePathname();
-  const [sessionUser, setSessionUser] = useState(null);
+  const [sessionUser, setSessionUser] = useState(() => readSessionUser());
 
   useEffect(() => {
-    setSessionUser(readSessionUser());
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+    const handleUpdate = () => setSessionUser(readSessionUser());
+    window.addEventListener("session-user:updated", handleUpdate);
+    return () => {
+      window.removeEventListener("session-user:updated", handleUpdate);
+    };
   }, []);
 
   const navItems = useMemo(() => {

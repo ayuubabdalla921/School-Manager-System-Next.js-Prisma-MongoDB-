@@ -1,3 +1,6 @@
+// === FULL FILE START ===
+// NOTE: Logic lama beddelin — kaliya UI classes ayaa la qurxiyey.
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -53,16 +56,26 @@ const PAGE_SIZE = 10;
 
 export default function StudentPage() {
   const router = useRouter();
-  const [sessionUser, setSessionUser] = useState(null);
+  const [sessionUser, setSessionUser] = useState(() => readSessionUser());
 
   useEffect(() => {
-    const current = readSessionUser();
-    if (!current) {
+    if (!sessionUser) {
       router.replace("/login");
-      return;
     }
-    setSessionUser(current);
-  }, [router]);
+  }, [router, sessionUser]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+    const handleUpdate = () => {
+      setSessionUser(readSessionUser());
+    };
+    window.addEventListener("session-user:updated", handleUpdate);
+    return () => {
+      window.removeEventListener("session-user:updated", handleUpdate);
+    };
+  }, []);
 
   if (!sessionUser) {
     return null;
@@ -75,6 +88,10 @@ export default function StudentPage() {
 
   return <StudentManagementPanel />;
 }
+
+// ==============================
+// === MANAGEMENT PANEL UI ====
+// ==============================
 
 function StudentManagementPanel() {
   const [students, setStudents] = useState([]);
@@ -148,7 +165,7 @@ function StudentManagementPanel() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-3 py-4 text-slate-900 transition-colors dark:text-slate-100 sm:px-6 sm:py-6">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 text-slate-900 dark:text-slate-100 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -156,7 +173,9 @@ function StudentManagementPanel() {
           </p>
           <h1 className="text-2xl font-semibold">Manage student records</h1>
         </div>
-        <Button onClick={() => setAddOpen(true)}>Add Student</Button>
+        <Button className="rounded-lg" onClick={() => setAddOpen(true)}>
+          Add Student
+        </Button>
       </div>
 
       <StudentTable
@@ -195,6 +214,10 @@ function StudentManagementPanel() {
     </div>
   );
 }
+
+// ============================
+// === STUDENT SELF DASH =====
+// ============================
 
 function StudentSelfDashboard({ sessionUser }) {
   const [profile, setProfile] = useState(null);
@@ -308,7 +331,7 @@ function StudentSelfDashboard({ sessionUser }) {
   );
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-3 py-4 text-slate-900 dark:text-slate-100 sm:px-6 sm:py-6">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 text-slate-900 dark:text-slate-100 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -318,9 +341,11 @@ function StudentSelfDashboard({ sessionUser }) {
             Welcome back, {sessionUser?.name || "Student"}
           </h1>
         </div>
+
         <Button
           variant="outline"
           size="sm"
+          className="rounded-lg"
           onClick={handleRefresh}
           disabled={isRefreshing || !sessionUser?.id}
         >
@@ -347,11 +372,9 @@ function StudentSelfDashboard({ sessionUser }) {
       ) : (
         <>
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/60">
+            <Card className="border-slate-200 bg-white/90 shadow-sm hover:shadow-md transition-all rounded-xl dark:border-slate-800 dark:bg-slate-900/60">
               <CardHeader>
-                <CardTitle className="text-xl">
-                  {profile?.name || sessionUser?.name}
-                </CardTitle>
+                <CardTitle className="text-xl">{profile?.name}</CardTitle>
                 <CardDescription>Your learning overview</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-3">
@@ -362,19 +385,23 @@ function StudentSelfDashboard({ sessionUser }) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase text-slate-500">Roll number</p>
+                  <p className="text-xs uppercase text-slate-500">
+                    Roll number
+                  </p>
                   <p className="text-lg font-semibold">
                     {profile?.rollNumber || "--"}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs uppercase text-slate-500">Today</p>
-                  <Badge className={statusClasses}>{todayStatus}</Badge>
+                  <Badge className={`rounded-md px-3 py-1 ${statusClasses}`}>
+                    {todayStatus}
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/60">
+            <Card className="border-slate-200 bg-white/90 shadow-sm hover:shadow-md transition-all rounded-xl dark:border-slate-800 dark:bg-slate-900/60">
               <CardHeader>
                 <CardTitle>Attendance summary</CardTitle>
                 <CardDescription>
@@ -385,9 +412,9 @@ function StudentSelfDashboard({ sessionUser }) {
                 <div className="flex flex-col gap-3">
                   <p className="text-sm text-slate-500">Overall rate</p>
                   <p className="text-3xl font-semibold">
-                    {Number(attendanceSummary?.presentPercentage ?? 0).toFixed(
-                      1
-                    )}
+                    {Number(
+                      attendanceSummary?.presentPercentage ?? 0
+                    ).toFixed(1)}
                     %
                   </p>
                   <div className="space-y-2 text-sm">
@@ -411,7 +438,8 @@ function StudentSelfDashboard({ sessionUser }) {
                     </div>
                   </div>
                 </div>
-                <div className="h-40 w-full">
+
+                <div className="h-40 w-full rounded-lg bg-white/50 dark:bg-slate-900/30 shadow-inner p-2">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadialBarChart
                       data={attendanceChartData}
@@ -425,11 +453,7 @@ function StudentSelfDashboard({ sessionUser }) {
                         domain={[0, 100]}
                         tick={false}
                       />
-                      <RadialBar
-                        dataKey="value"
-                        cornerRadius={6}
-                        background
-                      />
+                      <RadialBar dataKey="value" cornerRadius={6} background />
                     </RadialBarChart>
                   </ResponsiveContainer>
                 </div>
@@ -438,7 +462,7 @@ function StudentSelfDashboard({ sessionUser }) {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2 border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/60">
+            <Card className="lg:col-span-2 border-slate-200 bg-white/90 shadow-sm hover:shadow-md transition-all rounded-xl dark:border-slate-800 dark:bg-slate-900/60">
               <CardHeader>
                 <CardTitle>Subjects</CardTitle>
                 <CardDescription>
@@ -461,12 +485,17 @@ function StudentSelfDashboard({ sessionUser }) {
                     </TableHeader>
                     <TableBody>
                       {subjects.map((subject) => (
-                        <TableRow key={subject.id || subject.subjectId}>
+                        <TableRow
+                          key={subject.id}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        >
                           <TableCell className="font-medium">
-                            {subject.name || subject.subjectName}
+                            {subject.name}
                           </TableCell>
                           <TableCell>
-                            {subject.teacherName || subject.teacher?.name || "--"}
+                            {subject.teacherName ||
+                              subject.teacher?.name ||
+                              "--"}
                           </TableCell>
                           <TableCell className="text-right text-sm text-slate-500">
                             {subject.schedule || subject.day || "TBD"}
@@ -479,10 +508,12 @@ function StudentSelfDashboard({ sessionUser }) {
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/60">
+            <Card className="border-slate-200 bg-white/90 shadow-sm hover:shadow-md transition-all rounded-xl dark:border-slate-800 dark:bg-slate-900/60">
               <CardHeader>
                 <CardTitle>Recent messages</CardTitle>
-                <CardDescription>Direct notes from your teachers</CardDescription>
+                <CardDescription>
+                  Direct notes from your teachers
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {upcomingMessages.length === 0 ? (
@@ -492,8 +523,8 @@ function StudentSelfDashboard({ sessionUser }) {
                 ) : (
                   upcomingMessages.map((message) => (
                     <div
-                      key={message.id || message.messageId}
-                      className="rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900/80"
+                      key={message.id}
+                      className="rounded-lg border border-slate-200 bg-white dark:bg-slate-900/80 p-3 text-sm shadow-sm hover:shadow-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div>
@@ -501,11 +532,16 @@ function StudentSelfDashboard({ sessionUser }) {
                             {message.subject || "Message"}
                           </p>
                           <p className="text-xs text-slate-500">
-                            from {message.senderName || message.teacher?.name || "Faculty"}
+                            from{" "}
+                            {message.senderName ||
+                              message.teacher?.name ||
+                              "Faculty"}
                           </p>
                         </div>
                         <Badge variant="outline" className="text-xs">
-                          {formatDateLabel(message.createdAt || message.sentAt)}
+                          {formatDateLabel(
+                            message.createdAt || message.sentAt
+                          )}
                         </Badge>
                       </div>
                       <p className="mt-2 line-clamp-3 text-slate-600 dark:text-slate-300">
@@ -536,3 +572,5 @@ const formatDateLabel = (value) => {
     day: "numeric",
   });
 };
+
+// === FULL FILE END ===

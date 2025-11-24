@@ -1,30 +1,59 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 
 export default function EditTeacherForm({ open, setOpen, teacher, refresh }) {
-  const [form, setForm] = useState({ name: "", email: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (teacher) setForm({ name: teacher.name, email: teacher.email });
-  }, [teacher]);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!teacher?.id) {
+      setError("Select a teacher to update.");
+      return;
+    }
 
-  const update = async () => {
-    const res = await fetch(`/api/teachers/${teacher.id}`, {
-      method: "PUT",
-      body: JSON.stringify(form),
-    });
+    const formData = new FormData(event.currentTarget);
+    const payload = {
+      name: String(formData.get("name") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+    };
 
-    if (res.ok) {
+    if (!payload.name || !payload.email) {
+      setError("Name and email are required.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch(`/api/teachers/${teacher.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error("Error updating teacher");
+      }
+
       toast({ title: "Teacher updated!" });
       refresh();
       setOpen(false);
-    } else {
-      toast({ title: "Error updating!", variant: "destructive" });
+    } catch (err) {
+      setError(err?.message || "Unable to update teacher");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -35,23 +64,34 @@ export default function EditTeacherForm({ open, setOpen, teacher, refresh }) {
           <DialogTitle>Edit Teacher</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <form
+          key={teacher?.id || "edit-teacher"}
+          className="space-y-3"
+          onSubmit={handleSubmit}
+        >
           <Input
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Name"
+            name="name"
+            placeholder="Teacher name"
+            defaultValue={teacher?.name ?? ""}
           />
 
           <Input
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            name="email"
+            type="email"
             placeholder="Email"
+            defaultValue={teacher?.email ?? ""}
           />
 
-          <Button className="w-full" onClick={update}>
-            Update Teacher
+          {error && (
+            <p className="text-sm text-red-500" role="alert">
+              {error}
+            </p>
+          )}
+
+          <Button className="w-full" type="submit" disabled={loading}>
+            {loading ? "Updating..." : "Update Teacher"}
           </Button>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

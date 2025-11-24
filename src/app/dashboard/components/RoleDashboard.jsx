@@ -42,10 +42,19 @@ const quickActions = {
 };
 
 export default function RoleDashboard() {
-  const [sessionUser, setSessionUser] = useState(null);
+  const [sessionUser, setSessionUser] = useState(() => readSessionUser());
 
   useEffect(() => {
-    setSessionUser(readSessionUser());
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+    const handleUpdate = () => {
+      setSessionUser(readSessionUser());
+    };
+    window.addEventListener("session-user:updated", handleUpdate);
+    return () => {
+      window.removeEventListener("session-user:updated", handleUpdate);
+    };
   }, []);
 
   const role = sessionUser?.role?.toUpperCase() || "STUDENT";

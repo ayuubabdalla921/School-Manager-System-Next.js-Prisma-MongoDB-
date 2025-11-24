@@ -166,13 +166,14 @@ export default function LoginPage() {
 
           {/* BOTTOM LINK */}
           <p className="mt-10 text-center text-sm text-gray-500 dark:text-gray-400">
-            Need an account?
-            <Link
+            
+            Don't have an account?
+            {/* <Link
               href="/register"
               className="font-semibold text-indigo-600 hover:text-indigo-500 ml-1"
             >
               Create one
-            </Link>
+            </Link> */}
           </p>
         </div>
       </div>

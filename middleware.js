@@ -35,7 +35,7 @@ const ROUTE_PERMISSIONS = [
   },
 ];
 
-const AUTH_PAGES = new Set(["/login", "/register"]);
+const AUTH_PAGES = new Set(["/login"]);
 
 const decodeTokenPayload = (token) => {
   if (!token) {
@@ -106,5 +106,5 @@ export function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/login"],
 };
